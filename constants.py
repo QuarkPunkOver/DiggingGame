@@ -1,9 +1,16 @@
 import pygame
+import os
+import sys
+from settings import settings
 
 pygame.init()
 pygame.mixer.init()
 
-SCREEN = pygame.display.set_mode((800, 600))
+if settings.fullscreen:
+    SCREEN = pygame.display.set_mode((settings.screen_width, settings.screen_height), pygame.FULLSCREEN)
+else:
+    SCREEN = pygame.display.set_mode((settings.screen_width, settings.screen_height))
+
 pygame.display.set_caption("Digging Game - Core of the Earth")
 CLOCK = pygame.time.Clock()
 FONT = pygame.font.Font(None, 36)
@@ -13,13 +20,15 @@ TITLE_FONT = pygame.font.Font(None, 72)
 TILE_SIZE = 16
 WORLD_WIDTH = 255
 WORLD_DEPTH = 255
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+SCREEN_WIDTH, SCREEN_HEIGHT = settings.screen_width, settings.screen_height
 MOVE_FUEL_COST = 0.1
 DIG_FUEL_COST = 0.1
 INITIAL_FUEL = 200
 EVACUATION_FUEL = 200
 REPAIR_COST = 25
-SAVE_FILE = "savegame.json"
+
+from settings import settings
+SAVE_FILE = settings.get_save_path("savegame.json")
 
 SURFACE_TEMP = 20
 CORE_TEMP = 5000
@@ -30,10 +39,10 @@ COLORS = {
     'dense_earth': (160, 82, 45),
     'gravel': (128, 128, 128),
     'soft_stone': (169, 169, 169),
-    'stone': (105, 105, 105),
-    'dense_stone': (80, 80, 80),
-    'andesite': (90, 90, 100),
-    'granite': (120, 110, 100),
+    'stone': (139, 90, 43),
+    'dense_stone': (101, 67, 33),
+    'andesite': (128, 128, 128),
+    'granite': (200, 200, 200),
     'soft_matter': (150, 100, 150),
     'dense_matter': (100, 50, 100),
     'core': (255, 69, 0),
@@ -47,6 +56,8 @@ COLORS = {
     'platinum': (229, 228, 226),
     'tungsten': (80, 80, 80),
     'diamond': (185, 242, 255),
+    'uranium': (57, 255, 20),
+    'uranium_isotope': (0, 255, 0),
     'core_fragment': (255, 100, 100),
     'air': (255, 255, 255),
     'player': (255, 0, 0),
@@ -57,8 +68,8 @@ COLORS = {
 }
 
 TILE_TYPES = {
-    'surface': {'hardness': 0.5, 'resource': None, 'color': COLORS['surface']},
-    'soil': {'hardness': 1, 'resource': None, 'color': COLORS['soil']},
+    'surface': {'hardness': 0.5, 'resource': 'surface', 'color': COLORS['surface']},
+    'soil': {'hardness': 1, 'resource': 'soil', 'color': COLORS['soil']},
     'dense_earth': {'hardness': 2, 'resource': 'dense_earth', 'color': COLORS['dense_earth']},
     'gravel': {'hardness': 3, 'resource': 'gravel', 'color': COLORS['gravel']},
     'soft_stone': {'hardness': 4, 'resource': 'soft_stone', 'color': COLORS['soft_stone']},
@@ -68,7 +79,7 @@ TILE_TYPES = {
     'granite': {'hardness': 8, 'resource': 'granite', 'color': COLORS['granite']},
     'soft_matter': {'hardness': 9, 'resource': 'soft_matter', 'color': COLORS['soft_matter']},
     'dense_matter': {'hardness': 10, 'resource': 'dense_matter', 'color': COLORS['dense_matter']},
-    'magma': {'hardness': 15, 'resource': None, 'color': COLORS['magma']},
+    'magma': {'hardness': 15, 'resource': 'magma', 'color': COLORS['magma']},
     'core': {'hardness': 30, 'resource': None, 'color': COLORS['core']},
     'coal': {'hardness': 2, 'resource': 'coal', 'color': COLORS['coal']},
     'silicon': {'hardness': 2, 'resource': 'silicon', 'color': COLORS['silicon']},
@@ -79,13 +90,15 @@ TILE_TYPES = {
     'platinum': {'hardness': 8, 'resource': 'platinum', 'color': COLORS['platinum']},
     'tungsten': {'hardness': 8, 'resource': 'tungsten', 'color': COLORS['tungsten']},
     'diamond': {'hardness': 9, 'resource': 'diamond', 'color': COLORS['diamond']},
+    'uranium': {'hardness': 8, 'resource': 'uranium', 'color': COLORS['uranium']},
+    'uranium_isotope': {'hardness': 9, 'resource': 'uranium_isotope', 'color': COLORS['uranium_isotope']},
     'core_fragment': {'hardness': 1, 'resource': 'core_fragment', 'color': COLORS['core_fragment']},
 }
 
 LAYERS = [
     (0, 1, 'surface', None, 0),
-    (1, 3, 'soil', None, 0),
-    (3, 20, 'dense_earth', 'silicon', 0.3),
+    (1, 5, 'soil', None, 0),
+    (5, 20, 'dense_earth', 'silicon', 0.3),
     (20, 40, 'gravel', 'gravel', 0.2),
     (40, 60, 'soft_stone', 'soft_stone', 0.15),
     (60, 80, 'stone', 'stone', 0.12),
@@ -94,9 +107,16 @@ LAYERS = [
     (120, 140, 'granite', 'granite', 0.05),
     (140, 160, 'soft_matter', 'soft_matter', 0.03),
     (160, 180, 'dense_matter', 'dense_matter', 0.02),
-    (180, 220, 'magma', None, 0),
-    (220, 254, 'dense_matter', 'dense_matter', 0.01),
+    (180, 220, 'magma', 'magma', 0.5),
+    (220, 254, 'magma', 'magma', 0.3),
     (254, 255, 'core', None, 0),
 ]
 
 buildings = []
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)

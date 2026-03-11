@@ -51,54 +51,76 @@ class World:
                                     tile_type = base
                             elif base == 'stone':
                                 r = random.random()
-                                if r < 0.35:
+                                if r < 0.30:
                                     tile_type = 'iron'
-                                elif r < 0.60:
+                                elif r < 0.50:
                                     tile_type = 'copper'
-                                elif r < 0.80:
+                                elif r < 0.70:
                                     tile_type = 'tin'
-                                elif r < 0.90:
+                                elif r < 0.85:
                                     tile_type = 'coal'
+                                elif r < 0.95:
+                                    if random.random() < 0.1:
+                                        tile_type = 'uranium'
+                                    else:
+                                        tile_type = base
                                 else:
                                     tile_type = base
                             elif base == 'dense_stone':
                                 r = random.random()
-                                if r < 0.45:
+                                if r < 0.40:
                                     tile_type = 'iron'
-                                elif r < 0.75:
+                                elif r < 0.65:
                                     tile_type = 'gold'
-                                elif r < 0.85:
+                                elif r < 0.80:
                                     tile_type = 'coal'
+                                elif r < 0.95:
+                                    if random.random() < 0.15: 
+                                        tile_type = 'uranium'
+                                    else:
+                                        tile_type = base
                                 else:
                                     tile_type = base
                             elif base == 'andesite':
                                 r = random.random()
-                                if r < 0.35:
+                                if r < 0.30:
                                     tile_type = 'gold'
-                                elif r < 0.65:
+                                elif r < 0.55:
                                     tile_type = 'platinum'
-                                elif r < 0.85:
+                                elif r < 0.75:
                                     tile_type = 'tungsten'
-                                elif r < 0.90:
+                                elif r < 0.85:
                                     tile_type = 'coal'
+                                elif r < 0.97:
+                                    if random.random() < 0.5:
+                                        tile_type = 'uranium'
+                                    else:
+                                        tile_type = 'uranium_isotope'
                                 else:
                                     tile_type = base
                             elif base == 'granite':
                                 r = random.random()
-                                if r < 0.35:
+                                if r < 0.30:
                                     tile_type = 'tungsten'
-                                elif r < 0.65:
+                                elif r < 0.55:
                                     tile_type = 'platinum'
-                                elif r < 0.85:
+                                elif r < 0.75:
                                     tile_type = 'diamond'
-                                elif r < 0.90:
+                                elif r < 0.85:
                                     tile_type = 'coal'
+                                elif r < 0.97:
+                                    if random.random() < 0.3:
+                                        tile_type = 'uranium'
+                                    else:
+                                        tile_type = 'uranium_isotope'
                                 else:
                                     tile_type = base
                             elif base == 'soft_matter':
                                 tile_type = 'soft_matter'
                             elif base == 'dense_matter':
                                 tile_type = 'dense_matter'
+                            elif base == 'magma':
+                                tile_type = 'magma'
                             else:
                                 tile_type = ore
                         else:
