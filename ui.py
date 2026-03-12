@@ -114,22 +114,64 @@ def draw_world(screen, world, player, camera_x, camera_y, buildings):
     
     if player.drill_width_max > 1:
         width_indicator = player.drill_width_current * 2
+        
         if player.facing == 0 or player.facing == 1:
-            pygame.draw.line(screen, (255, 255, 255), 
-                           (center[0] - width_indicator, center[1]), 
-                           (center[0] + width_indicator, center[1]), 2)
-            pygame.draw.circle(screen, (255, 255, 255), 
-                             (center[0] - width_indicator, center[1]), 2)
-            pygame.draw.circle(screen, (255, 255, 255), 
-                             (center[0] + width_indicator, center[1]), 2)
+            for i in range(-(player.drill_width_current // 2), (player.drill_width_current // 2) + 1):
+                if i == 0:
+                    line_color = (255, 255, 255)
+                    line_width = 3
+                else:
+                    line_color = (200, 200, 100)
+                    line_width = 1
+                
+                x_offset = i * 16
+                start_point = (center[0] + x_offset - 8, center[1])
+                end_point = (center[0] + x_offset + 8, center[1])
+                pygame.draw.line(screen, line_color, start_point, end_point, line_width)
+            
+            for i in range(-(player.drill_width_current // 2), (player.drill_width_current // 2) + 1):
+                if i == 0:
+                    circle_color = (255, 255, 255)
+                    circle_radius = 4
+                else:
+                    circle_color = (200, 200, 100)
+                    circle_radius = 3
+                
+                x_pos = center[0] + i * 16
+                pygame.draw.circle(screen, circle_color, (x_pos, center[1]), circle_radius)
+                pygame.draw.circle(screen, (100, 100, 100), (x_pos, center[1]), circle_radius, 1)
         else:
-            pygame.draw.line(screen, (255, 255, 255), 
-                           (center[0], center[1] - width_indicator), 
-                           (center[0], center[1] + width_indicator), 2)
-            pygame.draw.circle(screen, (255, 255, 255), 
-                             (center[0], center[1] - width_indicator), 2)
-            pygame.draw.circle(screen, (255, 255, 255), 
-                             (center[0], center[1] + width_indicator), 2)
+            for i in range(-(player.drill_width_current // 2), (player.drill_width_current // 2) + 1):
+                if i == 0:
+                    line_color = (255, 255, 255)
+                    line_width = 3
+                else:
+                    line_color = (200, 200, 100)
+                    line_width = 1
+                
+                y_offset = i * 16
+                start_point = (center[0], center[1] + y_offset - 8)
+                end_point = (center[0], center[1] + y_offset + 8)
+                pygame.draw.line(screen, line_color, start_point, end_point, line_width)
+            
+            for i in range(-(player.drill_width_current // 2), (player.drill_width_current // 2) + 1):
+                if i == 0:
+                    circle_color = (255, 255, 255)
+                    circle_radius = 4
+                else:
+                    circle_color = (200, 200, 100)
+                    circle_radius = 3
+                
+                y_pos = center[1] + i * 16
+                pygame.draw.circle(screen, circle_color, (center[0], y_pos), circle_radius)
+                pygame.draw.circle(screen, (100, 100, 100), (center[0], y_pos), circle_radius, 1)
+    
+    if player.digging_active and hasattr(player, 'digging_targets') and player.digging_targets:
+        for tx, ty in player.digging_targets:
+            target_x = tx*16 - camera_x + 8
+            target_y = ty*16 - camera_y + 8
+            pygame.draw.line(screen, (255, 100, 100), center, (target_x, target_y), 2)
+            pygame.draw.circle(screen, (255, 100, 100), (target_x, target_y), 4)
     
     if player.facing == 0: 
         end = (center[0], center[1]+8)
@@ -161,8 +203,8 @@ def draw_simple_inventory(screen, player):
     overlay.fill((0, 0, 0, 180))
     screen.blit(overlay, (0, 0))
     
-    panel_width = 450
-    panel_height = 500
+    panel_width = 500
+    panel_height = 550
     panel_x = (SCREEN_WIDTH - panel_width) // 2
     panel_y = (SCREEN_HEIGHT - panel_height) // 2
     
@@ -192,16 +234,19 @@ def draw_simple_inventory(screen, player):
     
     y_offset = panel_y + 120
     items_per_page = 8
-    current_page = 0
     
     items = list(player.inventory.items())
+    total_pages = max(1, (len(items) + items_per_page - 1) // items_per_page)
+    current_page = (player.inventory_scroll // items_per_page) + 1
     
     if not items:
         empty_text = pygame.font.Font(None, 28).render("Inventory is empty", True, (150, 150, 150))
         empty_rect = empty_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height//2))
         screen.blit(empty_text, empty_rect)
     else:
-        for i, (resource, count) in enumerate(items[:items_per_page]):
+        visible_items = player.get_visible_inventory()
+        
+        for i, (resource, count) in enumerate(visible_items):
             if 'uranium' in resource:
                 color = (57, 255, 20)
             elif 'core' in resource:
@@ -216,36 +261,51 @@ def draw_simple_inventory(screen, player):
                 color = (255, 255, 255)
             
             if i % 2 == 0:
-                row_rect = pygame.Rect(panel_x + 20, y_offset + i * 35 - 5, panel_width - 40, 30)
+                row_rect = pygame.Rect(panel_x + 20, y_offset + i * 40 - 5, panel_width - 40, 35)
                 draw_rounded_rect(screen, (45, 45, 55), row_rect, 8)
             
-            icon_rect = pygame.Rect(panel_x + 50, y_offset + i * 35, 16, 16)
+            icon_rect = pygame.Rect(panel_x + 50, y_offset + i * 40, 20, 20)
             pygame.draw.rect(screen, color, icon_rect)
             pygame.draw.rect(screen, (255, 255, 255), icon_rect, 1)
             
             res_text = pygame.font.Font(None, 24).render(resource.capitalize(), True, color)
-            screen.blit(res_text, (panel_x + 80, y_offset + i * 35))
+            screen.blit(res_text, (panel_x + 80, y_offset + i * 40 + 2))
             
-            count_bg = pygame.Rect(panel_x + 250, y_offset + i * 35 - 2, 60, 22)
+            count_bg = pygame.Rect(panel_x + 250, y_offset + i * 40, 60, 22)
             draw_rounded_rect(screen, (20, 20, 30), count_bg, 6)
             count_text = pygame.font.Font(None, 24).render(f"x{count}", True, (255, 255, 255))
-            screen.blit(count_text, (panel_x + 260, y_offset + i * 35))
+            screen.blit(count_text, (panel_x + 260, y_offset + i * 40 + 2))
+        
+        if len(items) > items_per_page:
+            page_text = pygame.font.Font(None, 20).render(f"Page {current_page}/{total_pages}", True, (180, 180, 180))
+            page_rect = page_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 120))
+            screen.blit(page_text, page_rect)
     
     total_items = len(player.inventory)
     total_count = sum(player.inventory.values())
     
-    info_bg = pygame.Rect(panel_x + 50, panel_y + panel_height - 80, panel_width - 100, 40)
+    info_bg = pygame.Rect(panel_x + 50, panel_y + panel_height - 100, panel_width - 100, 40)
     draw_rounded_rect(screen, (40, 40, 50), info_bg, 10)
     
-    items_text = pygame.font.Font(None, 22).render(f"Total resources: {total_items} types, {total_count} items", True, (200, 200, 200))
-    items_rect = items_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 65))
+    items_text = pygame.font.Font(None, 22).render(f"Total: {total_items} types, {total_count} items", True, (200, 200, 200))
+    items_rect = items_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 85))
     screen.blit(items_text, items_rect)
+
+    close_btn = pygame.Rect(panel_x + panel_width//2 - 60, panel_y + panel_height - 50, 120, 35)
+    mouse_pos = pygame.mouse.get_pos()
+    if close_btn.collidepoint(mouse_pos):
+        btn_color = (120, 60, 60)
+    else:
+        btn_color = (80, 40, 40)
     
-    inst_bg = pygame.Rect(panel_x + 100, panel_y + panel_height - 40, panel_width - 200, 25)
-    draw_rounded_rect(screen, (30, 30, 40), inst_bg, 8)
-    inst_text = pygame.font.Font(None, 20).render("Press I to close", True, (180, 180, 180))
-    inst_rect = inst_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 30))
-    screen.blit(inst_text, inst_rect)
+    draw_rounded_rect(screen, btn_color, close_btn, 10)
+    pygame.draw.rect(screen, (150, 100, 100), close_btn, 2, border_radius=10)
+    
+    close_text = pygame.font.Font(None, 24).render("Close", True, (255, 255, 255))
+    text_rect = close_text.get_rect(center=close_btn.center)
+    screen.blit(close_text, text_rect)
+    
+    player.inventory_close_btn = close_btn
 
 def draw_ui(screen, player, world):
     ui_bg = pygame.Surface((230, 280), pygame.SRCALPHA)

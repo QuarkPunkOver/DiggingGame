@@ -24,6 +24,10 @@ class Player:
         self.fuel_level = 1
         self.efficiency_level = 1
         
+        self.speed_level = 1
+        self.max_speed_level = 10
+        self.speed_multiplier = 1.0
+        
         self.diamond_coating = False
         self.electric_upgrade = False
         self.uranium_engine = False
@@ -45,6 +49,7 @@ class Player:
         self.last_move_time = 0
         self.move_delay = 150
         self.empty_move_delay = 50
+        self.min_move_delay = 30
         
         self.continue_digging = False
         self.game_completed = False
@@ -61,6 +66,10 @@ class Player:
         self.max_view_range = 25
         self.explored_tiles = set()
         
+        self.inventory_scroll = 0
+        self.inventory_items_per_page = 8
+        self.max_inventory_scroll = 0
+        
         if load_saved and player_data:
             self.load(player_data)
         
@@ -75,31 +84,38 @@ class Player:
         self.temp_resistance = 200 + (self.hull_level - 1) * 700
         self.hull_strength = self.max_hull
         
+        self.speed_multiplier = 1.0 + (self.speed_level - 1) * 0.15
+        
         if self.diamond_coating:
             self.drill_power *= 1.66
         
         if self.electric_upgrade:
             self.drill_power *= 1.1
             self.fuel_efficiency *= 0.9
+            self.speed_multiplier *= 1.1
         
         if self.uranium_engine:
             self.drill_power *= 1.5
             self.fuel_efficiency *= 0.8
+            self.speed_multiplier *= 1.15
         
         if self.titanium_drill:
             self.drill_power *= 1.3
             self.fuel_efficiency *= 0.85
+            self.speed_multiplier *= 1.1
         
         if self.plasma_cutter:
             self.drill_power *= 2.0
             self.fuel_efficiency *= 0.7
             self.temp_resistance += 500
+            self.speed_multiplier *= 1.2
         
         if self.neutronium_core:
-            self.drill_power *= 30.0
+            self.drill_power *= 3.0
             self.fuel_efficiency *= 0.5
             self.max_fuel *= 1.5
             self.temp_resistance += 1000
+            self.speed_multiplier *= 1.3
         
         if self.drill_width_max > 11:
             self.drill_width_max = 11
@@ -107,27 +123,15 @@ class Player:
         if self.drill_width_current > self.drill_width_max:
             self.drill_width_current = self.drill_width_max
         
-        print(f"[STATS] Drill power: {self.drill_power:.2f}, Fuel efficiency: {self.fuel_efficiency:.2f}")
-
+        print(f"[STATS] Drill power: {self.drill_power:.2f}, Speed mult: {self.speed_multiplier:.2f}")
+    
     def cheat_rocketman(self):
         cheat_items = {
-            'copper': 100,
-            'iron': 80,
-            'gold': 50,
-            'coal': 100,
-            'diamond': 30,
-            'platinum': 40,
-            'tungsten': 50,
-            'uranium': 60,
-            'uranium_isotope': 30,
-            'core_fragment': 10,
-            'dense_matter': 20,
-            'soft_matter': 20,
-            'silicon': 50,
-            'tin': 50,
-            'gravel': 100,
-            'stone': 100,
-            'granite': 50
+            'copper': 100, 'iron': 80, 'gold': 50, 'coal': 100,
+            'diamond': 30, 'platinum': 40, 'tungsten': 50,
+            'uranium': 60, 'uranium_isotope': 30, 'core_fragment': 10,
+            'dense_matter': 20, 'soft_matter': 20, 'silicon': 50,
+            'tin': 50, 'gravel': 100, 'stone': 100, 'granite': 50
         }
         
         for item, count in cheat_items.items():
@@ -139,6 +143,41 @@ class Player:
         self.update_stats()
         print("[CHEAT] ROCKETMAN activated! All resources added!")
         return True
+    
+    def upgrade_speed(self):
+        if self.speed_level < self.max_speed_level:
+            cost = self.get_speed_upgrade_cost()
+            if self.money >= cost:
+                self.money -= cost
+                self.speed_level += 1
+                self.update_stats()
+                sound_manager.play('upgrade')
+                return True
+        return False
+    
+    def get_speed_upgrade_cost(self):
+        if self.speed_level == 1:
+            return 300
+        elif self.speed_level == 2:
+            return 500
+        elif self.speed_level == 3:
+            return 800
+        elif self.speed_level == 4:
+            return 1200
+        elif self.speed_level == 5:
+            return 1800
+        elif self.speed_level == 6:
+            return 2500
+        elif self.speed_level == 7:
+            return 3500
+        elif self.speed_level == 8:
+            return 5000
+        elif self.speed_level == 9:
+            return 7000
+        return 0
+    
+    def can_upgrade_speed(self):
+        return self.speed_level < self.max_speed_level
     
     def upgrade_view_range(self):
         if self.view_range < self.max_view_range:
@@ -271,7 +310,6 @@ class Player:
     def get_dig_positions(self):
         dx, dy = self.current_direction
         positions = []
-        
         half = self.drill_width_current // 2
         
         if dx == 0 and dy == 1:
@@ -291,16 +329,19 @@ class Player:
     
     def get_current_move_delay(self, world):
         if self.digging_active:
-            return self.move_delay
+            base_delay = self.move_delay
+        else:
+            dx, dy = self.current_direction
+            tx, ty = self.x + dx, self.y + dy
+            tile = world.get_tile(tx, ty)
+            
+            if not tile or tile.dug or tx < 0 or tx >= world.width or ty < 0 or ty >= world.depth:
+                base_delay = self.empty_move_delay
+            else:
+                base_delay = self.move_delay
         
-        dx, dy = self.current_direction
-        tx, ty = self.x + dx, self.y + dy
-        tile = world.get_tile(tx, ty)
-        
-        if not tile or tile.dug or tx < 0 or tx >= world.width or ty < 0 or ty >= world.depth:
-            return self.empty_move_delay
-        
-        return self.move_delay
+        adjusted_delay = base_delay / self.speed_multiplier
+        return max(self.min_move_delay, int(adjusted_delay))
     
     def set_direction(self, dx, dy):
         self.current_direction = (dx, dy)
@@ -325,17 +366,12 @@ class Player:
             return False
         
         hardness_map = {
-            'surface': 1, 'soil': 1,
-            'dense_earth': 1, 'silicon': 1, 'coal': 1,
+            'surface': 1, 'soil': 1, 'dense_earth': 1, 'silicon': 1, 'coal': 1,
             'gravel': 1, 'copper': 1, 'tin': 1, 'soft_stone': 1,
-            'stone': 2, 'iron': 2,
-            'dense_stone': 2, 'andesite': 2,
-            'granite': 2, 'gold': 2,
-            'platinum': 3, 'tungsten': 3,
-            'diamond': 3,
-            'uranium': 4, 'uranium_isotope': 5,
-            'soft_matter': 4, 'dense_matter': 5,
-            'magma': 6,
+            'stone': 2, 'iron': 2, 'dense_stone': 2, 'andesite': 2,
+            'granite': 2, 'gold': 2, 'platinum': 3, 'tungsten': 3,
+            'diamond': 3, 'uranium': 4, 'uranium_isotope': 5,
+            'soft_matter': 4, 'dense_matter': 5, 'magma': 6,
             'core': 10, 'core_fragment': 1
         }
         
@@ -347,17 +383,12 @@ class Player:
             return 1.0
         
         speed_map = {
-            'surface': 1.2, 'soil': 1.2,
-            'dense_earth': 1.1, 'silicon': 1.1, 'coal': 1.1,
+            'surface': 1.2, 'soil': 1.2, 'dense_earth': 1.1, 'silicon': 1.1, 'coal': 1.1,
             'gravel': 1.1, 'copper': 1.1, 'tin': 1.1, 'soft_stone': 1.1,
-            'stone': 0.9, 'iron': 0.9,
-            'dense_stone': 0.9, 'andesite': 0.9,
-            'granite': 0.9, 'gold': 0.9,
-            'platinum': 0.7, 'tungsten': 0.7,
-            'diamond': 0.7,
-            'uranium': 0.5, 'uranium_isotope': 0.4,
-            'soft_matter': 0.5, 'dense_matter': 0.4,
-            'magma': 0.2,
+            'stone': 0.9, 'iron': 0.9, 'dense_stone': 0.9, 'andesite': 0.9,
+            'granite': 0.9, 'gold': 0.9, 'platinum': 0.7, 'tungsten': 0.7,
+            'diamond': 0.7, 'uranium': 0.5, 'uranium_isotope': 0.4,
+            'soft_matter': 0.5, 'dense_matter': 0.4, 'magma': 0.2,
             'core': 0.08, 'core_fragment': 0.08
         }
         
@@ -560,6 +591,27 @@ class Player:
         
         return resources_collected if resources_collected else None
     
+    def scroll_inventory(self, direction):
+        items = list(self.inventory.items())
+        if not items:
+            return
+        
+        self.max_inventory_scroll = max(0, len(items) - self.inventory_items_per_page)
+        self.inventory_scroll += direction
+        
+        if self.inventory_scroll < 0:
+            self.inventory_scroll = 0
+        elif self.inventory_scroll > self.max_inventory_scroll:
+            self.inventory_scroll = self.max_inventory_scroll
+        
+        sound_manager.play('menu_click')
+    
+    def get_visible_inventory(self):
+        items = list(self.inventory.items())
+        start = self.inventory_scroll
+        end = start + self.inventory_items_per_page
+        return items[start:end]
+    
     def evacuate(self):
         self.inventory.clear()
         self.money = 0
@@ -600,7 +652,8 @@ class Player:
             'plasma_cutter': self.plasma_cutter,
             'neutronium_core': self.neutronium_core,
             'view_range': self.view_range,
-            'explored_tiles': list(self.explored_tiles)
+            'explored_tiles': list(self.explored_tiles),
+            'speed_level': self.speed_level
         }
     
     def load(self, data):
@@ -633,6 +686,7 @@ class Player:
         self.view_range = data.get('view_range', 5)
         explored = data.get('explored_tiles', [])
         self.explored_tiles = set(tuple(coord) for coord in explored)
+        self.speed_level = data.get('speed_level', 1)
     
     def save_game(self, world):
         save_data = {

@@ -12,8 +12,8 @@ from menus import (
 )
 from sound import sound_manager
 from settings import settings
+
 def show_pause_menu(player, world, buildings):
-    """Показывает меню паузы при нажатии ESC в стиле магазина"""
     menu_active = True
     pause_bg = None
     
@@ -55,10 +55,6 @@ def show_pause_menu(player, world, buildings):
         SCREEN.blit(title_shadow, title_rect)
         title_rect = title.get_rect(center=(panel_x + panel_width//2, panel_y + 45))
         SCREEN.blit(title, title_rect)
-        
-        line_y = panel_y + 85
-        pygame.draw.line(SCREEN, (80, 80, 100), (panel_x + 50, line_y), (panel_x + panel_width - 50, line_y), 2)
-        pygame.draw.line(SCREEN, (120, 120, 150), (panel_x + 50, line_y + 1), (panel_x + panel_width - 50, line_y + 1), 1)
         
         buttons = []
         btn_width, btn_height = 250, 50
@@ -223,7 +219,6 @@ def main():
                     else:
                         cheat_hesoyam.clear()
 
-                    # Управление инвентарем
                     if player.show_inventory:
                         if event.key == pygame.K_UP:
                             player.scroll_inventory(-1)
@@ -268,10 +263,6 @@ def main():
                                     show_save_menu(player, world, buildings)
                                 break
                     elif event.key == pygame.K_ESCAPE:
-                        if player.show_inventory:
-                            player.show_inventory = False
-                            player.selected_inventory_item = None
-                        else:
                             pause_result = show_pause_menu(player, world, buildings)
                             if pause_result == "exit":
                                 running = False
@@ -295,6 +286,13 @@ def main():
                             player.decrease_width()
                         if hasattr(player, 'width_plus_btn') and player.width_plus_btn and player.width_plus_btn.collidepoint(event.pos):
                             player.increase_width()
+                        if player.show_inventory:
+                            if hasattr(player, 'inventory_close_btn') and player.inventory_close_btn and player.inventory_close_btn.collidepoint(event.pos):
+                                player.show_inventory = False
+                                player.inventory_scroll = 0
+                                sound_manager.play('menu_click')
+                                if hasattr(player, 'inventory_close_btn'):
+                                    delattr(player, 'inventory_close_btn')
                 
                 elif event.type == pygame.MOUSEWHEEL:
                     if player.show_inventory:

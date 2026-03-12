@@ -18,9 +18,6 @@ def draw_panel(screen, rect, title_text=None, title_color=(255, 215, 100)):
         screen.blit(title_shadow, title_rect)
         title_rect = title.get_rect(center=(rect.centerx, rect.y + 35))
         screen.blit(title, title_rect)
-        line_y = rect.y + 75
-        pygame.draw.line(screen, (80, 80, 100), (rect.x + 50, line_y), (rect.x + rect.width - 50, line_y), 2)
-        pygame.draw.line(screen, (120, 120, 150), (rect.x + 50, line_y + 1), (rect.x + rect.width - 50, line_y + 1), 1)
 
 def draw_button(screen, rect, text, color=(40, 80, 40), hover_color=(80, 120, 80), text_color=(255, 255, 255), radius=8):
     mouse_pos = pygame.mouse.get_pos()
@@ -449,6 +446,7 @@ def show_tech_menu(player, world, buildings):
             {"name": "Efficiency", "level_attr": "efficiency_level", "cost": 250, "desc": "Less fuel usage"},
             {"name": "Hull", "level_attr": "hull_level", "cost": 400, "desc": "+200 hull, +700°C resist"},
             {"name": "View Range", "special": "view_range", "desc": "See further in darkness"},
+            {"name": "Speed", "level_attr": "speed_level", "cost": 300, "desc": "Faster movement (+15% per level)"},
         ]
         special_upgrades = [
             {"name": "Diamond Coating", "func": "apply_diamond_coating", "cost": "10 diamonds, $1000", "desc": "+66% drill speed"},
@@ -589,6 +587,7 @@ def show_shop_menu(player, world, buildings):
     font = pygame.font.Font(None, 24)
     small_font = pygame.font.Font(None, 18)
     title_font = pygame.font.Font(None, 42)
+    
     while shop_active:
         draw_rounded_rect_with_border(SCREEN, (20, 20, 30), 
                                       pygame.Rect(panel_x, panel_y, panel_width, panel_height), 
@@ -601,22 +600,23 @@ def show_shop_menu(player, world, buildings):
         SCREEN.blit(title_shadow, title_rect)
         title_rect = title.get_rect(center=(panel_x + panel_width//2, panel_y + 35))
         SCREEN.blit(title, title_rect)
-        line_y = panel_y + 75
-        pygame.draw.line(SCREEN, (80, 80, 100), (panel_x + 50, line_y), (panel_x + panel_width - 50, line_y), 2)
-        pygame.draw.line(SCREEN, (120, 120, 150), (panel_x + 50, line_y + 1), (panel_x + panel_width - 50, line_y + 1), 1)
+        
         headers = ["Resource", "Count", "Price", "Total", "Actions"]
         header_x = panel_x + 50
         for i, header in enumerate(headers):
             text = small_font.render(header, True, (200, 200, 150))
             SCREEN.blit(text, (header_x + i * 120, panel_y + 90))
+        
         player_items = list(player.inventory.items())
         visible_player_items = player_items[player_scroll:player_scroll + player_items_per_page]
         y_offset = panel_y + 120
         mouse_pos = pygame.mouse.get_pos()
+        
         for i, (item, count) in enumerate(visible_player_items):
             y_pos = y_offset + i * 45
             price = sell_prices.get(item, 5)
             total_value = price * count
+            
             if 'uranium' in item:
                 color = (57, 255, 20)
             elif 'core' in item:
@@ -629,22 +629,29 @@ def show_shop_menu(player, world, buildings):
                 color = (229, 228, 226)
             else:
                 color = (255, 255, 255)
+            
             if i % 2 == 0:
                 row_rect = pygame.Rect(panel_x + 30, y_pos - 5, panel_width - 60, 40)
                 draw_rounded_rect(SCREEN, (40, 40, 50), row_rect, 10)
+            
             icon_rect = pygame.Rect(panel_x + 40, y_pos, 20, 20)
             pygame.draw.rect(SCREEN, color, icon_rect)
             pygame.draw.rect(SCREEN, (255, 255, 255), icon_rect, 1)
+            
             name_text = small_font.render(item.capitalize(), True, color)
             SCREEN.blit(name_text, (panel_x + 70, y_pos + 2))
+            
             count_bg = pygame.Rect(panel_x + 160, y_pos, 40, 20)
             draw_rounded_rect(SCREEN, (20, 20, 30), count_bg, 6)
             count_text = small_font.render(str(count), True, (255, 255, 255))
             SCREEN.blit(count_text, (panel_x + 170, y_pos + 2))
+            
             price_text = small_font.render(f"${price}", True, (100, 255, 100))
             SCREEN.blit(price_text, (panel_x + 270, y_pos + 2))
+            
             total_text = small_font.render(f"${total_value}", True, (255, 255, 100))
             SCREEN.blit(total_text, (panel_x + 390, y_pos + 2))
+            
             sell1_btn = pygame.Rect(panel_x + 490, y_pos - 2, 60, 24)
             if sell1_btn.collidepoint(mouse_pos):
                 btn_color = (80, 120, 80)
@@ -655,6 +662,7 @@ def show_shop_menu(player, world, buildings):
             sell1_text = small_font.render("1", True, (255, 255, 255))
             sell1_rect = sell1_text.get_rect(center=sell1_btn.center)
             SCREEN.blit(sell1_text, sell1_rect)
+            
             sellall_btn = pygame.Rect(panel_x + 560, y_pos - 2, 70, 24)
             if sellall_btn.collidepoint(mouse_pos):
                 btn_color = (80, 80, 120)
@@ -665,19 +673,30 @@ def show_shop_menu(player, world, buildings):
             sellall_text = small_font.render("All", True, (255, 255, 255))
             sellall_rect = sellall_text.get_rect(center=sellall_btn.center)
             SCREEN.blit(sellall_text, sellall_rect)
+        
         if len(player_items) > player_items_per_page:
             player_page = player_scroll // player_items_per_page + 1
             player_pages = (len(player_items) - 1) // player_items_per_page + 1
-            scroll_bg = pygame.Rect(panel_x + panel_width//2 - 100, panel_y + panel_height - 70, 200, 30)
+            scroll_bg = pygame.Rect(panel_x + panel_width//2 - 100, panel_y + panel_height - 120, 200, 30)
             draw_rounded_rect(SCREEN, (30, 30, 40), scroll_bg, 10)
             scroll_text = small_font.render(f"Page {player_page}/{player_pages}", True, (180, 180, 180))
             scroll_rect = scroll_text.get_rect(center=scroll_bg.center)
             SCREEN.blit(scroll_text, scroll_rect)
-        inst_bg = pygame.Rect(panel_x + panel_width//2 - 100, panel_y + panel_height - 35, 200, 25)
-        draw_rounded_rect(SCREEN, (20, 20, 30), inst_bg, 8)
-        inst_text = small_font.render("ESC to exit", True, (200, 200, 200))
-        inst_rect = inst_text.get_rect(center=inst_bg.center)
-        SCREEN.blit(inst_text, inst_rect)
+        
+        close_btn = pygame.Rect(panel_x + panel_width//2 - 75, panel_y + panel_height - 70, 150, 40)
+        
+        if close_btn.collidepoint(mouse_pos):
+            btn_color = (120, 60, 60)
+        else:
+            btn_color = (80, 40, 40)
+        
+        draw_rounded_rect(SCREEN, btn_color, close_btn, 10)
+        pygame.draw.rect(SCREEN, (150, 100, 100), close_btn, 2, border_radius=10)
+        
+        close_text = pygame.font.Font(None, 28).render("Close", True, (255, 255, 255))
+        text_rect = close_text.get_rect(center=close_btn.center)
+        SCREEN.blit(close_text, text_rect)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -698,6 +717,11 @@ def show_shop_menu(player, world, buildings):
                     player_scroll = min(max_scroll, player_scroll + 1)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    if close_btn.collidepoint(event.pos):
+                        shop_active = False
+                        sound_manager.play('menu_click')
+                        break
+                        
                     for i, (item, count) in enumerate(visible_player_items):
                         y_pos = panel_y + 120 + i * 45
                         sell1_btn = pygame.Rect(panel_x + 490, y_pos - 2, 60, 24)
