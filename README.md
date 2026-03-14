@@ -58,7 +58,7 @@
 ## 📥 Установка
 
 ### Вариант 1: Готовая сборка (рекомендуется)
-1. Скачайте последний релиз из [Releases](https://github.com/funDAVEover/DiggingGame/releases)
+1. Скачайте последний релиз из [Releases](https://github.com/QuarkPunkOver/DiggingGame/releases)
 2. Распаковать 
 2. Запустите `DiggingGame.exe`
 3. Наслаждайтесь игрой!
@@ -125,7 +125,7 @@ The game features various resources:
 ## 📥 Installation
 
 ### Option 1: Ready Build (recommended)
-1. Download the latest release from [Releases](https://github.com/funDAVEover/DiggingGame/releases)
+1. Download the latest release from [Releases](https://github.com/QuarkPunkOver/DiggingGame/releases)
 2. Extract the archive
 3. Run `DiggingGame.exe`
 4. Enjoy the game!
