@@ -6,6 +6,9 @@ from settings import settings
 pygame.init()
 pygame.mixer.init()
 
+from language import lang
+lang.initialize()
+
 if settings.fullscreen:
     SCREEN = pygame.display.set_mode((settings.screen_width, settings.screen_height), pygame.FULLSCREEN)
 else:
@@ -20,14 +23,14 @@ TITLE_FONT = pygame.font.Font(None, 72)
 TILE_SIZE = 16
 WORLD_WIDTH = 255
 WORLD_DEPTH = 255
-SCREEN_WIDTH, SCREEN_HEIGHT = settings.screen_width, settings.screen_height
+SCREEN_WIDTH = settings.screen_width
+SCREEN_HEIGHT = settings.screen_height
 MOVE_FUEL_COST = 0.1
 DIG_FUEL_COST = 0.1
 INITIAL_FUEL = 200
 EVACUATION_FUEL = 200
 REPAIR_COST = 25
 
-from settings import settings
 SAVE_FILE = settings.get_save_path("savegame.json")
 
 SURFACE_TEMP = 20
@@ -120,3 +123,14 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+def update_display_mode():
+    global SCREEN, SCREEN_WIDTH, SCREEN_HEIGHT
+    SCREEN_WIDTH = settings.screen_width
+    SCREEN_HEIGHT = settings.screen_height
+    if settings.fullscreen:
+        SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+    else:
+        SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption(f"{lang.get('game_title')} - {lang.get('game_subtitle')}")
+    return SCREEN

@@ -8,142 +8,11 @@ from ui import draw_world, draw_ui, draw_rounded_rect, draw_rounded_rect_with_bo
 from menus import (
     show_main_menu, show_settings_menu, show_fuel_menu, show_shop_menu,
     show_tech_menu, show_save_menu, show_evacuation_message,
-    show_core_victory_screen
+    show_core_victory_screen, show_pause_menu
 )
 from sound import sound_manager
 from settings import settings
-
-def show_pause_menu(player, world, buildings):
-    menu_active = True
-    pause_bg = None
-    
-    try:
-        pause_bg = SCREEN.copy()
-    except:
-        pause_bg = None
-    
-    sound_manager.pause_music()
-    
-    while menu_active:
-        if pause_bg:
-            SCREEN.blit(pause_bg, (0, 0))
-        else:
-            SCREEN.fill((0, 0, 0))
-            draw_world(SCREEN, world, player, 0, 0, buildings)
-            draw_ui(SCREEN, player, world)
-        
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 150))
-        SCREEN.blit(overlay, (0, 0))
-        
-        panel_width = 450
-        panel_height = 500
-        panel_x = SCREEN_WIDTH//2 - panel_width//2
-        panel_y = SCREEN_HEIGHT//2 - panel_height//2
-        
-        draw_rounded_rect_with_border(SCREEN, (20, 20, 30), 
-                                      pygame.Rect(panel_x, panel_y, panel_width, panel_height), 
-                                      25, (100, 100, 130), 3)
-        
-        inner_rect = pygame.Rect(panel_x + 8, panel_y + 8, panel_width - 16, panel_height - 16)
-        draw_rounded_rect(SCREEN, (30, 30, 40), inner_rect, 20)
-        
-        title_font = pygame.font.Font(None, 48)
-        title_shadow = title_font.render("PAUSE", True, (80, 60, 20))
-        title = title_font.render("PAUSE", True, (255, 215, 100))
-        title_rect = title.get_rect(center=(panel_x + panel_width//2 + 2, panel_y + 47))
-        SCREEN.blit(title_shadow, title_rect)
-        title_rect = title.get_rect(center=(panel_x + panel_width//2, panel_y + 45))
-        SCREEN.blit(title, title_rect)
-        
-        buttons = []
-        btn_width, btn_height = 250, 50
-        btn_x = SCREEN_WIDTH//2 - btn_width//2
-        btn_y_start = panel_y + 130
-        btn_spacing = 20
-        
-        options = [
-            ("CONTINUE", "continue", (40, 80, 40)),      # Green
-            ("SAVE GAME", "save", (40, 40, 80)),         # Blue
-            ("SETTINGS", "settings", (80, 80, 40)),      # Yellow
-            ("EXIT TO MENU", "exit", (80, 40, 40))       # Red
-        ]
-        
-        mouse_pos = pygame.mouse.get_pos()
-        
-        for i, (text, action, base_color) in enumerate(options):
-            btn_rect = pygame.Rect(btn_x, btn_y_start + i * (btn_height + btn_spacing), btn_width, btn_height)
-            
-            if action == "save" and not player:
-                draw_rounded_rect(SCREEN, (40, 40, 40), btn_rect, 12)
-                btn_text = pygame.font.Font(None, 30).render(text, True, (100, 100, 100))
-                text_rect = btn_text.get_rect(center=btn_rect.center)
-                SCREEN.blit(btn_text, text_rect)
-            else:
-                if btn_rect.collidepoint(mouse_pos):
-                    hover_color = tuple(min(c + 40, 255) for c in base_color)
-                    draw_rounded_rect(SCREEN, hover_color, btn_rect, 12)
-                else:
-                    draw_rounded_rect(SCREEN, base_color, btn_rect, 12)
-                
-                border_color = tuple(min(c + 60, 255) for c in base_color)
-                pygame.draw.rect(SCREEN, border_color, btn_rect, 2, border_radius=12)
-                
-                btn_text = pygame.font.Font(None, 30).render(text, True, (255, 255, 255))
-                text_rect = btn_text.get_rect(center=btn_rect.center)
-                SCREEN.blit(btn_text, text_rect)
-                
-                buttons.append((btn_rect, action))
-        
-        info_text = pygame.font.Font(None, 20).render("Press ESC again to continue", True, (150, 150, 150))
-        info_rect = info_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 40))
-        SCREEN.blit(info_text, info_rect)
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    sound_manager.unpause_music()
-                    menu_active = False
-                    return "continue"
-            
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                for btn_rect, action in buttons:
-                    if btn_rect.collidepoint(event.pos):
-                        sound_manager.play('menu_click')
-                        
-                        if action == "continue":
-                            sound_manager.unpause_music()
-                            menu_active = False
-                            return "continue"
-                        
-                        elif action == "save":
-                            if player:
-                                show_save_menu(player, world, buildings)
-                                try:
-                                    pause_bg = SCREEN.copy()
-                                except:
-                                    pass
-                        
-                        elif action == "settings":
-                            show_settings_menu(player, world)
-                            try:
-                                pause_bg = SCREEN.copy()
-                            except:
-                                pass
-                        
-                        elif action == "exit":
-                            sound_manager.stop_music()
-                            menu_active = False
-                            return "exit"
-        
-        pygame.display.flip()
-        CLOCK.tick(30)
-    
-    return "continue"
+from language import lang
 
 def main():
     buildings = []
@@ -157,7 +26,9 @@ def main():
             pygame.quit()
             sys.exit()
         elif menu_result == "settings":
-            show_settings_menu()
+            result = show_settings_menu()
+            if result == "back_to_menu":
+                continue
             continue
         
         if menu_result == "load":
@@ -186,9 +57,7 @@ def main():
         running = True
         
         cheat_hesoyam = []
-        
         target_hesoyam = [pygame.K_h, pygame.K_e, pygame.K_s, pygame.K_o, pygame.K_y, pygame.K_a, pygame.K_m]
-
 
         damage_timer = 0
         DAMAGE_INTERVAL = 1000
@@ -215,7 +84,7 @@ def main():
                             player.money += 10000
                             player.cheat_rocketman()
                             sound_manager.play('upgrade')
-                            print("[CHEAT] HESOYAM activated! Okay, but who's going to play")
+                            print(lang.get('hesoyam_cheat'))
                     else:
                         cheat_hesoyam.clear()
 
@@ -327,11 +196,16 @@ def main():
 
             result = player.update_digging(world)
             if result == "core_reached":
+                pygame.time.wait(500)
                 if not show_core_victory_screen(player):
                     running = False
                     break
                 else:
                     player.game_completed = False
+                    player.money += 10000
+                    player.max_fuel += 500
+                    player.fuel = player.max_fuel
+                    player.update_stats()
 
             if current_time - damage_timer > DAMAGE_INTERVAL:
                 if player.take_damage(world):

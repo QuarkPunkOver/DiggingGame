@@ -2,6 +2,7 @@ import json
 import random
 from constants import INITIAL_FUEL, REPAIR_COST, MOVE_FUEL_COST, DIG_FUEL_COST, WORLD_WIDTH, SAVE_FILE
 from sound import sound_manager
+from language import lang
 
 class Player:
     def __init__(self, x, y, load_saved=False, player_data=None):
@@ -69,6 +70,8 @@ class Player:
         self.inventory_scroll = 0
         self.inventory_items_per_page = 8
         self.max_inventory_scroll = 0
+
+        self.core_mined = False
         
         if load_saved and player_data:
             self.load(player_data)
@@ -560,7 +563,8 @@ class Player:
         self.fuel -= fuel_consumed
         if self.fuel < 0:
             self.fuel = 0
-        
+
+        core_reached_this_frame = False
         targets_to_dig = list(tile_data.keys())
         for tx, ty in targets_to_dig:
             tile = world.get_tile(tx, ty)
@@ -576,6 +580,12 @@ class Player:
                     self.digging_targets.remove((tx, ty))
                 if (tx, ty) in self.target_progress:
                     del self.target_progress[(tx, ty)]
+                
+                if ty == world.depth - 1 or tile.type == 'core':
+                    if not self.core_mined:
+                        self.core_mined = True
+                        core_reached_this_frame = True
+                        print(f"[CORE] Core reached at depth {ty}!")
         
         if random.random() < 0.1 * len(targets_to_dig):
             temp = world.get_temperature(self.y)
@@ -588,6 +598,9 @@ class Player:
         
         if not self.digging_targets:
             self.stop_digging()
+        
+        if core_reached_this_frame:
+            return "core_reached"
         
         return resources_collected if resources_collected else None
     
@@ -653,7 +666,8 @@ class Player:
             'neutronium_core': self.neutronium_core,
             'view_range': self.view_range,
             'explored_tiles': list(self.explored_tiles),
-            'speed_level': self.speed_level
+            'speed_level': self.speed_level,
+            'core_mined': self.core_mined,
         }
     
     def load(self, data):
@@ -687,6 +701,7 @@ class Player:
         explored = data.get('explored_tiles', [])
         self.explored_tiles = set(tuple(coord) for coord in explored)
         self.speed_level = data.get('speed_level', 1)
+        self.core_mined = data.get('core_mined', False)
     
     def save_game(self, world):
         save_data = {

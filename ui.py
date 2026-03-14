@@ -1,5 +1,41 @@
 import pygame
 from constants import SCREEN, SCREEN_WIDTH, SCREEN_HEIGHT, COLORS, FONT, SMALL_FONT
+from language import lang
+
+def get_resource_color(resource):
+    color_map = {
+        'uranium': (57, 255, 20),
+        'uranium_isotope': (0, 255, 0),
+        'core': (255, 100, 100),
+        'core_fragment': (255, 100, 100),
+        'diamond': (185, 242, 255),
+        'gold': (255, 215, 0),
+        'platinum': (229, 228, 226),
+        'copper': (184, 115, 51),
+        'tin': (192, 192, 192),
+        'iron': (139, 69, 19),
+        'coal': (20, 20, 20),
+        'tungsten': (80, 80, 80),
+        'silicon': (100, 100, 150),
+        'gravel': (128, 128, 128),
+        'stone': (139, 90, 43),
+        'granite': (200, 200, 200),
+        'soft_matter': (150, 100, 150),
+        'dense_matter': (100, 50, 100),
+        'magma': (255, 140, 0),
+        'surface': (34, 139, 34),
+        'soil': (139, 69, 19),
+        'dense_earth': (160, 82, 45),
+        'soft_stone': (169, 169, 169),
+        'dense_stone': (101, 67, 33),
+        'andesite': (128, 128, 128),
+    }
+    
+    for key, color in color_map.items():
+        if key in resource.lower():
+            return color
+    
+    return (255, 255, 255)
 
 def draw_rounded_rect(surface, color, rect, radius=10):
     pygame.draw.rect(surface, color, rect, border_radius=radius)
@@ -215,8 +251,8 @@ def draw_simple_inventory(screen, player):
     inner_rect = pygame.Rect(panel_x + 5, panel_y + 5, panel_width - 10, panel_height - 10)
     draw_rounded_rect(screen, (35, 35, 45), inner_rect, 15)
     
-    title = pygame.font.Font(None, 42).render("INVENTORY", True, (255, 215, 100))
-    title_shadow = pygame.font.Font(None, 42).render("INVENTORY", True, (100, 80, 30))
+    title = pygame.font.Font(None, 42).render(lang.get('inventory'), True, (255, 215, 100))
+    title_shadow = pygame.font.Font(None, 42).render(lang.get('inventory'), True, (100, 80, 30))
     title_rect = title.get_rect(center=(panel_x + panel_width//2 + 2, panel_y + 32))
     screen.blit(title_shadow, title_rect)
     title_rect = title.get_rect(center=(panel_x + panel_width//2, panel_y + 30))
@@ -226,7 +262,7 @@ def draw_simple_inventory(screen, player):
     pygame.draw.line(screen, (80, 80, 100), (panel_x + 40, line_y), (panel_x + panel_width - 40, line_y), 2)
     pygame.draw.line(screen, (120, 120, 150), (panel_x + 40, line_y + 1), (panel_x + panel_width - 40, line_y + 1), 1)
     
-    headers = ["Resource", "Count"]
+    headers = [lang.get('resource'), lang.get('count')]
     header_x = panel_x + 100
     for i, header in enumerate(headers):
         text = pygame.font.Font(None, 26).render(header, True, (200, 200, 150))
@@ -240,25 +276,14 @@ def draw_simple_inventory(screen, player):
     current_page = (player.inventory_scroll // items_per_page) + 1
     
     if not items:
-        empty_text = pygame.font.Font(None, 28).render("Inventory is empty", True, (150, 150, 150))
+        empty_text = pygame.font.Font(None, 28).render(lang.get('inventory_empty'), True, (150, 150, 150))
         empty_rect = empty_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height//2))
         screen.blit(empty_text, empty_rect)
     else:
         visible_items = player.get_visible_inventory()
         
         for i, (resource, count) in enumerate(visible_items):
-            if 'uranium' in resource:
-                color = (57, 255, 20)
-            elif 'core' in resource:
-                color = (255, 100, 100)
-            elif 'diamond' in resource:
-                color = (185, 242, 255)
-            elif 'gold' in resource:
-                color = (255, 215, 0)
-            elif 'platinum' in resource:
-                color = (229, 228, 226)
-            else:
-                color = (255, 255, 255)
+            color = get_resource_color(resource)
             
             if i % 2 == 0:
                 row_rect = pygame.Rect(panel_x + 20, y_offset + i * 40 - 5, panel_width - 40, 35)
@@ -268,7 +293,11 @@ def draw_simple_inventory(screen, player):
             pygame.draw.rect(screen, color, icon_rect)
             pygame.draw.rect(screen, (255, 255, 255), icon_rect, 1)
             
-            res_text = pygame.font.Font(None, 24).render(resource.capitalize(), True, color)
+            resource_name = lang.get(resource)
+            if resource_name == resource:
+                resource_name = resource.capitalize()
+            
+            res_text = pygame.font.Font(None, 24).render(resource_name, True, color)
             screen.blit(res_text, (panel_x + 80, y_offset + i * 40 + 2))
             
             count_bg = pygame.Rect(panel_x + 250, y_offset + i * 40, 60, 22)
@@ -277,7 +306,7 @@ def draw_simple_inventory(screen, player):
             screen.blit(count_text, (panel_x + 260, y_offset + i * 40 + 2))
         
         if len(items) > items_per_page:
-            page_text = pygame.font.Font(None, 20).render(f"Page {current_page}/{total_pages}", True, (180, 180, 180))
+            page_text = pygame.font.Font(None, 20).render(f"{lang.get('page')} {current_page}/{total_pages}", True, (180, 180, 180))
             page_rect = page_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 120))
             screen.blit(page_text, page_rect)
     
@@ -287,7 +316,7 @@ def draw_simple_inventory(screen, player):
     info_bg = pygame.Rect(panel_x + 50, panel_y + panel_height - 100, panel_width - 100, 40)
     draw_rounded_rect(screen, (40, 40, 50), info_bg, 10)
     
-    items_text = pygame.font.Font(None, 22).render(f"Total: {total_items} types, {total_count} items", True, (200, 200, 200))
+    items_text = pygame.font.Font(None, 22).render(lang.get('total_items', types=total_items, count=total_count), True, (200, 200, 200))
     items_rect = items_text.get_rect(center=(panel_x + panel_width//2, panel_y + panel_height - 85))
     screen.blit(items_text, items_rect)
 
@@ -301,7 +330,7 @@ def draw_simple_inventory(screen, player):
     draw_rounded_rect(screen, btn_color, close_btn, 10)
     pygame.draw.rect(screen, (150, 100, 100), close_btn, 2, border_radius=10)
     
-    close_text = pygame.font.Font(None, 24).render("Close", True, (255, 255, 255))
+    close_text = pygame.font.Font(None, 24).render(lang.get('close'), True, (255, 255, 255))
     text_rect = close_text.get_rect(center=close_btn.center)
     screen.blit(close_text, text_rect)
     
@@ -317,7 +346,7 @@ def draw_ui(screen, player, world):
     bar_x, bar_y = 15, 10
     
     fuel_percent = player.fuel / player.max_fuel
-    fuel_text = SMALL_FONT.render(f"Fuel: {int(player.fuel)}/{player.max_fuel}", True, (255, 255, 255))
+    fuel_text = SMALL_FONT.render(lang.get('fuel_ui', current=int(player.fuel), max=int(player.max_fuel)), True, (255, 255, 255))
     screen.blit(fuel_text, (bar_x, bar_y))
     
     draw_rounded_rect(screen, (60, 60, 60), (bar_x, bar_y + 15, bar_width, bar_height), 6)
@@ -326,14 +355,14 @@ def draw_ui(screen, player, world):
         draw_rounded_rect(screen, (0, 200, 0), (bar_x, bar_y + 15, fill_width, bar_height), 6)
 
     rounded_money = round(player.money / 10) * 10
-    money_text = SMALL_FONT.render(f"Money: ${rounded_money}", True, (255, 255, 255))
+    money_text = SMALL_FONT.render(lang.get('money_ui', money=rounded_money), True, (255, 255, 255))
     screen.blit(money_text, (bar_x, bar_y + 40))
 
-    depth_text = SMALL_FONT.render(f"Depth: {player.y}", True, (255, 255, 255))
+    depth_text = SMALL_FONT.render(lang.get('depth_ui', depth=player.y), True, (255, 255, 255))
     screen.blit(depth_text, (bar_x, bar_y + 60))
 
     hull_percent = player.hull_strength / player.max_hull
-    hull_text = SMALL_FONT.render(f"Hull: {int(player.hull_strength)}/{player.max_hull}", True, (255, 255, 255))
+    hull_text = SMALL_FONT.render(lang.get('hull_ui', current=int(player.hull_strength), max=int(player.max_hull)), True, (255, 255, 255))
     screen.blit(hull_text, (bar_x, bar_y + 80))
     
     draw_rounded_rect(screen, (60, 60, 60), (bar_x, bar_y + 95, bar_width, bar_height), 6)
@@ -351,17 +380,17 @@ def draw_ui(screen, player, world):
     temp_color = (255, 255, 255)
     if temp > player.temp_resistance:
         temp_color = (255, 0, 0)
-    temp_text = SMALL_FONT.render(f"Temp: {int(temp)}°C / {int(player.temp_resistance)}°C", True, temp_color)
+    temp_text = SMALL_FONT.render(lang.get('temp_ui', temp=int(temp), resist=int(player.temp_resistance)), True, temp_color)
     screen.blit(temp_text, (bar_x, bar_y + 120))
 
-    width_text = SMALL_FONT.render(f"Drill width: {player.drill_width_current}/{player.drill_width_max}", True, (255, 255, 255))
+    width_text = SMALL_FONT.render(lang.get('drill_width_ui', current=player.drill_width_current, max=player.drill_width_max), True, (255, 255, 255))
     screen.blit(width_text, (bar_x, bar_y + 140))
 
-    view_text = SMALL_FONT.render(f"View range: {player.view_range}", True, (200, 200, 255))
+    view_text = SMALL_FONT.render(lang.get('view_range_ui', range=player.view_range), True, (200, 200, 255))
     screen.blit(view_text, (bar_x, bar_y + 160))
 
     control_y = bar_y + 180
-    control_text = SMALL_FONT.render("Width control:", True, (200, 200, 200))
+    control_text = SMALL_FONT.render(lang.get('width_control'), True, (200, 200, 200))
     screen.blit(control_text, (bar_x, control_y))
     
     btn_size = 25
@@ -388,7 +417,7 @@ def draw_ui(screen, player, world):
     player.width_plus_btn = plus_btn
 
     hint_y = control_y + 50
-    hint1 = SMALL_FONT.render("I-inv | U-stats | E-interact", True, (200, 200, 200))
+    hint1 = SMALL_FONT.render(lang.get('controls'), True, (200, 200, 200))
     screen.blit(hint1, (bar_x, hint_y))
     hint2 = SMALL_FONT.render("Heigh-Ho Heigh-Ho", True, (150, 150, 150))
     screen.blit(hint2, (bar_x, hint_y + 18))
@@ -401,19 +430,19 @@ def draw_ui(screen, player, world):
         stats_bg.fill((0, 0, 0, 200))
         screen.blit(stats_bg, (SCREEN_WIDTH - 290, 5))
         
-        stats_title = SMALL_FONT.render("STATS", True, (0, 255, 255))
+        stats_title = SMALL_FONT.render(lang.get('stats'), True, (0, 255, 255))
         screen.blit(stats_title, (SCREEN_WIDTH - 280, 10))
         
         stats_y = 35
-        drill_text = SMALL_FONT.render(f"Drill: {player.drill_level}", True, (255, 255, 255))
+        drill_text = SMALL_FONT.render(lang.get('drill', level=player.drill_level), True, (255, 255, 255))
         screen.blit(drill_text, (SCREEN_WIDTH - 280, stats_y))
-        width_text = SMALL_FONT.render(f"Width: {player.drill_width_current}/{player.drill_width_max}", True, (255, 255, 255))
+        width_text = SMALL_FONT.render(lang.get('width', current=player.drill_width_current, max=player.drill_width_max), True, (255, 255, 255))
         screen.blit(width_text, (SCREEN_WIDTH - 280, stats_y + 20))
-        fuel_text = SMALL_FONT.render(f"Fuel: {player.fuel_level}", True, (255, 255, 255))
+        fuel_text = SMALL_FONT.render(lang.get('fuel', level=player.fuel_level), True, (255, 255, 255))
         screen.blit(fuel_text, (SCREEN_WIDTH - 280, stats_y + 40))
-        eff_text = SMALL_FONT.render(f"Efficiency: {player.efficiency_level}", True, (255, 255, 255))
+        eff_text = SMALL_FONT.render(lang.get('efficiency_stat', level=player.efficiency_level), True, (255, 255, 255))
         screen.blit(eff_text, (SCREEN_WIDTH - 280, stats_y + 60))
-        hull_text = SMALL_FONT.render(f"Hull: {player.hull_level}", True, (255, 255, 255))
+        hull_text = SMALL_FONT.render(lang.get('hull_stat', level=player.hull_level), True, (255, 255, 255))
         screen.blit(hull_text, (SCREEN_WIDTH - 280, stats_y + 80))
         
         y = stats_y + 100

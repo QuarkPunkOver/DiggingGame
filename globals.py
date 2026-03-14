@@ -1,0 +1,2 @@
+settings = None
+lang = None

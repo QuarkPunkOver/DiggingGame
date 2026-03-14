@@ -2,6 +2,7 @@ import random
 import json
 from tile import Tile
 from constants import LAYERS, WORLD_WIDTH, WORLD_DEPTH, SURFACE_TEMP, CORE_TEMP
+from language import lang
 
 class World:
     def __init__(self, width, depth, load_saved=False, world_data=None):
@@ -13,6 +14,7 @@ class World:
             self.load(world_data)
         else:
             self.generate()
+        print(f"[WORLD] Core depth: {self.depth - 1}")
     
     def generate(self):
         for y in range(self.depth):
